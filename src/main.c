@@ -18,6 +18,8 @@ const struct device *gpiob_dev = DEVICE_DT_GET(PORTA_B);
 K_MUTEX_DEFINE(semaforo_pedestre_NS);
 K_MUTEX_DEFINE(semaforo_pedestre_LO);
 
+K_MUTEX_DEFINE(sincronizacao);
+
 void semaforo_pedestres_nortesul_G(void *p1, void *p2, void *p3) {
     int ret1;
     if(!device_is_ready(gpioa_dev)) {
@@ -28,12 +30,15 @@ void semaforo_pedestres_nortesul_G(void *p1, void *p2, void *p3) {
     if(ret1 < 0) {
         LOG_ERR("ERRO: falhou em configurar pino %d", PINO_PEDESTRE_NS_G);
     }
+    k_msleep(1000);//delay para norte e sul não começar como vermelho
     while(1) {
         k_mutex_lock(&semaforo_pedestre_NS, K_FOREVER);
+        k_mutex_lock(&sincronizacao, K_FOREVER);
         gpio_pin_set(gpioa_dev, PINO_PEDESTRE_NS_G, 1);
         k_msleep(4000);
         gpio_pin_set(gpioa_dev, PINO_PEDESTRE_NS_G, 0);
         k_mutex_unlock(&semaforo_pedestre_NS);
+        k_mutex_unlock(&sincronizacao);
     }
 
 }
@@ -69,10 +74,12 @@ void semaforo_pedestres_lesteoeste_G (void *p1, void *p2, void *p3) {
     }
     while(1) {
         k_mutex_lock(&semaforo_pedestre_LO, K_FOREVER);
+        k_mutex_lock(&sincronizacao, K_FOREVER);
         gpio_pin_set(gpiob_dev, PINO_PEDESTRE_LO_G, 1);
         k_msleep(4000);
         gpio_pin_set(gpiob_dev, PINO_PEDESTRE_LO_G, 0);
         k_mutex_unlock(&semaforo_pedestre_LO);
+        k_mutex_unlock(&sincronizacao);
     }
 }
 
@@ -96,8 +103,8 @@ void semaforo_pedestres_lesteoeste_R (void *p1, void *p2, void *p3) {
 }
 
 
-//K_THREAD_DEFINE(s_pedestresNS_G, 512, semaforo_pedestres_nortesul_G, NULL, NULL, NULL, 5, 0, 0);
-//K_THREAD_DEFINE(s_pedestresNS_R, 512, semaforo_pedestres_nortesul_R, NULL, NULL, NULL, 5, 0, 0);
+K_THREAD_DEFINE(s_pedestresNS_G, 512, semaforo_pedestres_nortesul_G, NULL, NULL, NULL, 5, 0, 0);
+K_THREAD_DEFINE(s_pedestresNS_R, 512, semaforo_pedestres_nortesul_R, NULL, NULL, NULL, 5, 0, 0);
 K_THREAD_DEFINE(s_pedestresLO_G, 512, semaforo_pedestres_lesteoeste_G, NULL, NULL, NULL, 5, 0, 0);
 K_THREAD_DEFINE(s_pedestresLO_R, 512, semaforo_pedestres_lesteoeste_R, NULL, NULL, NULL, 5, 0, 0);
 

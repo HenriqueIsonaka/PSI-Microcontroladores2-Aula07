@@ -49,10 +49,12 @@ void semaforo_carros_lesteoeste_R (void *p1, void *p2, void *p3) {
 }
 
 
+
 K_THREAD_DEFINE(s_pedestresLO_G, 512, semaforo_pedestres_lesteoeste_G, NULL, NULL, NULL, 5, 0, 0);
 K_THREAD_DEFINE(s_pedestresLO_R, 512, semaforo_pedestres_lesteoeste_R, NULL, NULL, NULL, 5, 0, 0);
 K_THREAD_DEFINE(s_carrosLO_G, 512, semaforo_carros_lesteoeste_G, NULL, NULL, NULL, 5, 0, 0);
 K_THREAD_DEFINE(s_carrosLO_R, 512, semaforo_carros_lesteoeste_R, NULL, NULL, NULL, 5, 0, 0);
+
 
 void main(void)
 {

@@ -87,11 +87,13 @@ void semaforo_carros_nortesul_G (void *p1, void *p2, void *p3) {
     while(1) {
         k_mutex_lock(&semaforo_carro_NS_GY, K_FOREVER);
         k_mutex_lock(&semaforo_carro_NS_GR, K_FOREVER);
+        k_mutex_lock(&sincronizacao, K_FOREVER);
         gpio_pin_set_dt(&led_G, 1);
         k_msleep(3000);
         gpio_pin_set_dt(&led_G, 0);
         k_mutex_unlock(&semaforo_carro_NS_GY);
         k_mutex_unlock(&semaforo_carro_NS_GR);
+        k_mutex_unlock(&sincronizacao);
     }
 }
 
@@ -100,6 +102,7 @@ void semaforo_carros_nortesul_Y (void *p1, void *p2, void *p3) {
     while(1) {
         k_mutex_lock(&semaforo_carro_NS_YR, K_FOREVER);
         k_mutex_lock(&semaforo_carro_NS_GY, K_FOREVER);
+        k_mutex_lock(&sincronizacao, K_FOREVER);
         gpio_pin_set_dt(&led_G, 1);
         gpio_pin_set_dt(&led_R, 1);
         k_msleep(1000);
@@ -107,6 +110,7 @@ void semaforo_carros_nortesul_Y (void *p1, void *p2, void *p3) {
         gpio_pin_set_dt(&led_R, 0);
         k_mutex_unlock(&semaforo_carro_NS_YR);
         k_mutex_unlock(&semaforo_carro_NS_GY);
+        k_mutex_unlock(&sincronizacao);
     }
 }
 
@@ -123,15 +127,16 @@ void semaforo_carros_nortesul_R (void *p1, void *p2, void *p3) {
 }
 
 void semaforo_carros_lesteoeste_G (void *p1, void *p2, void *p3) {
-    k_msleep(500);
     while(1) {
         k_mutex_lock(&semaforo_carro_LO_GY, K_FOREVER);
         k_mutex_lock(&semaforo_carro_LO_GR, K_FOREVER);
+        k_mutex_lock(&sincronizacao, K_FOREVER);
         gpio_pin_set(gpiob_dev, PINO_CARRO_LO_G, 1);
         k_msleep(3000);
         gpio_pin_set(gpiob_dev, PINO_CARRO_LO_G, 0);
         k_mutex_unlock(&semaforo_carro_LO_GY);
         k_mutex_unlock(&semaforo_carro_LO_GR);
+        k_mutex_unlock(&sincronizacao);
     }
 }
 
@@ -140,6 +145,7 @@ void semaforo_carros_lesteoeste_Y (void *p1, void *p2, void *p3) {
     while(1) {
         k_mutex_lock(&semaforo_carro_LO_YR, K_FOREVER);
         k_mutex_lock(&semaforo_carro_LO_GY, K_FOREVER);
+        k_mutex_lock(&sincronizacao, K_FOREVER);
         gpio_pin_set(gpiob_dev, PINO_CARRO_LO_G, 1);
         gpio_pin_set(gpiob_dev, PINO_CARRO_LO_R, 1);
         k_msleep(1000);
@@ -147,10 +153,12 @@ void semaforo_carros_lesteoeste_Y (void *p1, void *p2, void *p3) {
         gpio_pin_set(gpiob_dev, PINO_CARRO_LO_R, 0);
         k_mutex_unlock(&semaforo_carro_LO_YR);
         k_mutex_unlock(&semaforo_carro_LO_GY);
+        k_mutex_unlock(&sincronizacao);
     }
 }
 
 void semaforo_carros_lesteoeste_R (void *p1, void *p2, void *p3) {
+    k_msleep(500);
     while(1) {
         k_mutex_lock(&semaforo_carro_LO_GR, K_FOREVER);
         k_mutex_lock(&semaforo_carro_LO_YR, K_FOREVER);
@@ -166,9 +174,9 @@ void semaforo_carros_lesteoeste_R (void *p1, void *p2, void *p3) {
 //K_THREAD_DEFINE(s_pedestresNS_R, 512, semaforo_pedestres_nortesul_R, NULL, NULL, NULL, 5, 0, 0);
 //K_THREAD_DEFINE(s_pedestresLO_G, 512, semaforo_pedestres_lesteoeste_G, NULL, NULL, NULL, 5, 0, 0);
 //K_THREAD_DEFINE(s_pedestresLO_R, 512, semaforo_pedestres_lesteoeste_R, NULL, NULL, NULL, 5, 0, 0);
-//K_THREAD_DEFINE(s_carrosNS_G, 512, semaforo_carros_nortesul_G, NULL, NULL, NULL, 5, 0, 0);
-//K_THREAD_DEFINE(s_carrosNS_Y, 512, semaforo_carros_nortesul_Y, NULL, NULL, NULL, 5, 0, 0);
-//K_THREAD_DEFINE(s_carrosNS_R, 512, semaforo_carros_nortesul_R, NULL, NULL, NULL, 5, 0, 0);
+K_THREAD_DEFINE(s_carrosNS_G, 512, semaforo_carros_nortesul_G, NULL, NULL, NULL, 5, 0, 0);
+K_THREAD_DEFINE(s_carrosNS_Y, 512, semaforo_carros_nortesul_Y, NULL, NULL, NULL, 5, 0, 0);
+K_THREAD_DEFINE(s_carrosNS_R, 512, semaforo_carros_nortesul_R, NULL, NULL, NULL, 5, 0, 0);
 K_THREAD_DEFINE(s_carrosLO_G, 512, semaforo_carros_lesteoeste_G, NULL, NULL, NULL, 5, 0, 0);
 K_THREAD_DEFINE(s_carrosLO_Y, 512, semaforo_carros_lesteoeste_Y, NULL, NULL, NULL, 5, 0, 0);
 K_THREAD_DEFINE(s_carrosLO_R, 512, semaforo_carros_lesteoeste_R, NULL, NULL, NULL, 5, 0, 0);

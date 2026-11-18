@@ -3,33 +3,41 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/logging/log.h>
 
+
+
 #define PORTA_A DT_NODELABEL(gpioa)
 #define PORTA_B DT_NODELABEL(gpiob)
-#define PINO_PEDESTRE_NS_G 5
-#define PINO_PEDESTRE_NS_R 4
-#define PINO_PEDESTRE_LO_G 0
-#define PINO_PEDESTRE_LO_R 1
+#define LED_G_NODE DT_ALIAS(led0)  // LED verde
+#define LED_R_NODE DT_ALIAS(led2)  // LED vermelho
+#define PINO_PEDESTRE_NS_G 5 // PTA 5
+#define PINO_PEDESTRE_NS_R 4 // PTA 4
+#define PINO_PEDESTRE_LO_G 0 // PTB 0
+#define PINO_PEDESTRE_LO_R 1 // PTB 1
+#define PINO_CARRO_LO_G 9 // PTB 9
+#define PINO_CARRO_LO_Y 10 // PTB 10
+#define PINO_CARRO_LO_R 11 // PTB 11
 
 LOG_MODULE_REGISTER(megabrain, LOG_LEVEL_DBG);
 
 const struct device *gpioa_dev = DEVICE_DT_GET(PORTA_A);
 const struct device *gpiob_dev = DEVICE_DT_GET(PORTA_B);
+static const struct gpio_dt_spec led_G = GPIO_DT_SPEC_GET(LED_G_NODE, gpios);
+static const struct gpio_dt_spec led_R = GPIO_DT_SPEC_GET(LED_R_NODE, gpios);
 
 K_MUTEX_DEFINE(semaforo_pedestre_NS);
 K_MUTEX_DEFINE(semaforo_pedestre_LO);
 
+K_MUTEX_DEFINE(semaforo_carro_NS_GY);
+K_MUTEX_DEFINE(semaforo_carro_NS_GR);
+K_MUTEX_DEFINE(semaforo_carro_NS_YR);
+
+K_MUTEX_DEFINE(semaforo_carro_LO_GY);
+K_MUTEX_DEFINE(semaforo_carro_LO_GR);
+K_MUTEX_DEFINE(semaforo_carro_LO_YR);
+
 K_MUTEX_DEFINE(sincronizacao);
 
 void semaforo_pedestres_nortesul_G(void *p1, void *p2, void *p3) {
-    int ret1;
-    if(!device_is_ready(gpioa_dev)) {
-        LOG_ERR("ERRO: Porta A não está pronta");
-        return 1;
-    }
-    ret1  = gpio_pin_configure(gpioa_dev, PINO_PEDESTRE_NS_G, GPIO_OUTPUT_INACTIVE);
-    if(ret1 < 0) {
-        LOG_ERR("ERRO: falhou em configurar pino %d", PINO_PEDESTRE_NS_G);
-    }
     k_msleep(1000);//delay para norte e sul não começar como vermelho
     while(1) {
         k_mutex_lock(&semaforo_pedestre_NS, K_FOREVER);
@@ -44,15 +52,6 @@ void semaforo_pedestres_nortesul_G(void *p1, void *p2, void *p3) {
 }
 
 void semaforo_pedestres_nortesul_R (void *p1, void *p2, void *p3) {
-    int ret2;
-    if(!device_is_ready(gpioa_dev)) {
-        LOG_ERR("ERRO: Porta A não está pronta");
-        return 1;
-    }
-    ret2  = gpio_pin_configure(gpioa_dev, PINO_PEDESTRE_NS_R, GPIO_OUTPUT_INACTIVE);
-    if(ret2 < 0) {
-        LOG_ERR("ERRO: falhou em configurar pino %d", PINO_PEDESTRE_NS_R);
-    }
     while(1) {
         k_mutex_lock(&semaforo_pedestre_NS, K_FOREVER);
         gpio_pin_set(gpioa_dev, PINO_PEDESTRE_NS_R, 1);
@@ -63,15 +62,6 @@ void semaforo_pedestres_nortesul_R (void *p1, void *p2, void *p3) {
 }
 
 void semaforo_pedestres_lesteoeste_G (void *p1, void *p2, void *p3) {
-    int ret3;
-    if(!device_is_ready(gpiob_dev)) {
-        LOG_ERR("ERRO: Porta B não está pronta");
-        return 1;
-    }
-    ret3  = gpio_pin_configure(gpiob_dev, PINO_PEDESTRE_LO_G, GPIO_OUTPUT_INACTIVE);
-    if(ret3 < 0) {
-        LOG_ERR("ERRO: falhou em configurar pino %d", PINO_PEDESTRE_LO_G);
-    }
     while(1) {
         k_mutex_lock(&semaforo_pedestre_LO, K_FOREVER);
         k_mutex_lock(&sincronizacao, K_FOREVER);
@@ -84,15 +74,6 @@ void semaforo_pedestres_lesteoeste_G (void *p1, void *p2, void *p3) {
 }
 
 void semaforo_pedestres_lesteoeste_R (void *p1, void *p2, void *p3) {
-    int ret4;
-    if(!device_is_ready(gpiob_dev)) {
-        LOG_ERR("ERRO: Porta B não está pronta");
-        return 1;
-    }
-    ret4  = gpio_pin_configure(gpiob_dev, PINO_PEDESTRE_LO_R, GPIO_OUTPUT_INACTIVE);
-    if(ret4 < 0) {
-        LOG_ERR("ERRO: falhou em configurar pino %d", PINO_PEDESTRE_LO_R);
-    }
     while(1) {
         k_mutex_lock(&semaforo_pedestre_LO, K_FOREVER);
         gpio_pin_set(gpiob_dev, PINO_PEDESTRE_LO_R, 1);
@@ -102,14 +83,99 @@ void semaforo_pedestres_lesteoeste_R (void *p1, void *p2, void *p3) {
     }
 }
 
+void semaforo_carros_nortesul_G (void *p1, void *p2, void *p3) {
+    while(1) {
+        k_mutex_lock(&semaforo_carro_NS_GY, K_FOREVER);
+        k_mutex_lock(&semaforo_carro_NS_GR, K_FOREVER);
+        gpio_pin_set_dt(&led_G, 1);
+        k_msleep(3000);
+        gpio_pin_set_dt(&led_G, 0);
+        k_mutex_unlock(&semaforo_carro_NS_GY);
+        k_mutex_unlock(&semaforo_carro_NS_GR);
+    }
+}
 
-K_THREAD_DEFINE(s_pedestresNS_G, 512, semaforo_pedestres_nortesul_G, NULL, NULL, NULL, 5, 0, 0);
-K_THREAD_DEFINE(s_pedestresNS_R, 512, semaforo_pedestres_nortesul_R, NULL, NULL, NULL, 5, 0, 0);
-K_THREAD_DEFINE(s_pedestresLO_G, 512, semaforo_pedestres_lesteoeste_G, NULL, NULL, NULL, 5, 0, 0);
-K_THREAD_DEFINE(s_pedestresLO_R, 512, semaforo_pedestres_lesteoeste_R, NULL, NULL, NULL, 5, 0, 0);
+void semaforo_carros_nortesul_Y (void *p1, void *p2, void *p3) {
+    while(1) {
+        k_mutex_lock(&semaforo_carro_NS_YR, K_FOREVER);
+        k_mutex_lock(&semaforo_carro_NS_GY, K_FOREVER);
+        gpio_pin_set_dt(&led_G, 1);
+        gpio_pin_set_dt(&led_R, 1);
+        k_msleep(1000);
+        gpio_pin_set_dt(&led_G, 0);
+        gpio_pin_set_dt(&led_R, 0);
+        k_mutex_unlock(&semaforo_carro_NS_YR);
+        k_mutex_unlock(&semaforo_carro_NS_GY);
+    }
+}
+
+void semaforo_carros_nortesul_R (void *p1, void *p2, void *p3) {
+    while(1) {
+        k_mutex_lock(&semaforo_carro_NS_GR, K_FOREVER);
+        k_mutex_lock(&semaforo_carro_NS_YR, K_FOREVER);
+        gpio_pin_set_dt(&led_R, 1);
+        k_msleep(4000);
+        gpio_pin_set_dt(&led_R, 0);
+        k_mutex_unlock(&semaforo_carro_NS_GR);
+        k_mutex_unlock(&semaforo_carro_NS_YR);
+    }
+}
+
+
+//K_THREAD_DEFINE(s_pedestresNS_G, 512, semaforo_pedestres_nortesul_G, NULL, NULL, NULL, 5, 0, 0);
+//K_THREAD_DEFINE(s_pedestresNS_R, 512, semaforo_pedestres_nortesul_R, NULL, NULL, NULL, 5, 0, 0);
+//K_THREAD_DEFINE(s_pedestresLO_G, 512, semaforo_pedestres_lesteoeste_G, NULL, NULL, NULL, 5, 0, 0);
+//K_THREAD_DEFINE(s_pedestresLO_R, 512, semaforo_pedestres_lesteoeste_R, NULL, NULL, NULL, 5, 0, 0);
+K_THREAD_DEFINE(s_carrosNS_G, 512, semaforo_carros_nortesul_G, NULL, NULL, NULL, 5, 0, 0);
+K_THREAD_DEFINE(s_carrosNS_Y, 512, semaforo_carros_nortesul_Y, NULL, NULL, NULL, 5, 0, 0);
+K_THREAD_DEFINE(s_carrosNS_R, 512, semaforo_carros_nortesul_R, NULL, NULL, NULL, 5, 0, 0);
 
 void main(void)
 {
+    int retG, retR, ret1, ret2, ret3, ret4;
+    if(!device_is_ready(gpioa_dev)) {
+        LOG_ERR("ERRO: Porta A não está pronta");
+        return;
+    }
+    if(!device_is_ready(gpiob_dev)) {
+        LOG_ERR("ERRO: Porta B não está pronta");
+        return;
+    }
+    ret1  = gpio_pin_configure(gpioa_dev, PINO_PEDESTRE_NS_G, GPIO_OUTPUT_INACTIVE);
+    if(ret1 < 0) {
+        LOG_ERR("ERRO: falhou em configurar pino %d", PINO_PEDESTRE_NS_G);
+    }
+    ret2  = gpio_pin_configure(gpioa_dev, PINO_PEDESTRE_NS_R, GPIO_OUTPUT_INACTIVE);
+    if(ret2 < 0) {
+        LOG_ERR("ERRO: falhou em configurar pino %d", PINO_PEDESTRE_NS_R);
+    }
+    ret3  = gpio_pin_configure(gpiob_dev, PINO_PEDESTRE_LO_G, GPIO_OUTPUT_INACTIVE);
+    if(ret3 < 0) {
+        LOG_ERR("ERRO: falhou em configurar pino %d", PINO_PEDESTRE_LO_G);
+    }
+    ret4  = gpio_pin_configure(gpiob_dev, PINO_PEDESTRE_LO_R, GPIO_OUTPUT_INACTIVE);
+    if(ret4 < 0) {
+        LOG_ERR("ERRO: falhou em configurar pino %d", PINO_PEDESTRE_LO_R);
+    }
+    if(!device_is_ready(led_G.port)) {
+        LOG_ERR("ERRO: LED verde não está pronto");
+        return;
+    }
+    if (!device_is_ready(led_R.port)) {
+        LOG_ERR("ERRO: led vermelho não está pronto");
+        return;
+    }
+    retG = gpio_pin_configure_dt(&led_G, GPIO_OUTPUT_INACTIVE);
+    if (retG < 0) {
+        LOG_ERR("Error %d: failed to configure LED pin\n", retG);
+        return;
+    }
+    retR = gpio_pin_configure_dt(&led_R, GPIO_OUTPUT_INACTIVE);
+    if (retR < 0) {
+        LOG_ERR("Error %d: failed to configure LED pin\n", retR);
+        return;
+    }
+    
     while (1) {
         k_sleep(K_FOREVER);
     }

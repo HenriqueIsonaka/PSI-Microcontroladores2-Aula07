@@ -4,10 +4,10 @@
 #include <zephyr/logging/log.h>
 
 #define PORTA_B DT_NODELABEL(gpiob)
-#define PINO_PEDESTRE_LO_G 0
-#define PINO_PEDESTRE_LO_R 1
-#define PINO_RECEPTOR_PLO_G 2
-#define PINO_RECEPTOR_PLO_R 3
+#define PINO_PEDESTRE_LO_G 0 // PTB 0
+#define PINO_PEDESTRE_LO_R 1 // PTB 1
+#define PINO_RECEPTOR_PLO_G 2 // PTB 2
+#define PINO_RECEPTOR_PLO_R 3 // PTB 3
 
 LOG_MODULE_REGISTER(megabrain, LOG_LEVEL_DBG);
 

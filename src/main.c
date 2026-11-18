@@ -179,4 +179,4 @@ void main(void)
     while (1) {
         k_sleep(K_FOREVER);
     }
-}
+}//
